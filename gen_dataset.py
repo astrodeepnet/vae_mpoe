@@ -63,7 +63,7 @@ class SpectrumProcessor:
             '[NII]6583': (6583.4, 0.3),  # [N II] 6583
             '[SII]6716': (6716.4, 0.1),  # [S II] 6716
             '[SII]6731': (6730.8, 0.1),   # [S II] 6731
-            '[OII]3727': (3727.1, 0.5)    # [O II] 3727 (doublet)
+            '[OII]3727': (3727.1, 0.2)    # [O II] 3727 (doublet)
         }
 
     def calculate(self, wl, age, met, z=0.0, Av=0.0, Rv=3.1, Ha_flux_ratio=0.0):
@@ -81,7 +81,7 @@ class SpectrumProcessor:
             attenuation = 10 ** (-0.4 * extinction)
             spec *= attenuation
 
-        mask = (wl_z >= 5600) & (wl_z <= 6800)
+        mask = (wl >= 5600) & (wl <= 6800)
         total_flux_5600_6800 = np.trapz(spec[mask], wl_z[mask])
         # Add emission lines if Ha_flux_ratio > 0
         if Ha_flux_ratio > 0:
@@ -97,7 +97,7 @@ class SpectrumProcessor:
                 line_wl_z = line_wl * (1 + z)
                 
                 # Create Gaussian for the emission line (FWHM ~5Å typical for galaxies)
-                sigma = 2.5 / 2.3548  # Convert FWHM=2.5Å to sigma
+                sigma = 25 / 2.3548  # Convert FWHM=2.5Å to sigma
                 gauss = np.exp(-0.5 * ((wl_z - line_wl_z)/sigma)**2)
                 gauss *= line_flux / (sigma * np.sqrt(2*np.pi))  # Normalize to total flux
                 
@@ -105,7 +105,6 @@ class SpectrumProcessor:
             
             # Add emission lines to the spectrum
             spec += emission_spec
-    
         return spec, wl_z
 
 
@@ -198,9 +197,8 @@ class DatasetBuilder:
                 spectrum, _ = self.processor.calculate(self.wavelength_grid, age, metdex, z=z, Av=Av, Rv=extinction_rv)
                 
             if age < young_age_threshold and np.random.rand() < eml_prob:
-                ha_strength = 10 ** np.random.uniform(np.log10(1e-2), np.log10(2e-1))
-                spectrum, _ = self.processor.calculate(self.wavelength_grid, age, metdex, z=z, Rv=extinction_rv, Ha_flux_ratio=ha_strength)
-
+                ha_strength = 10**np.random.uniform(np.log10(3e-3), np.log10(5e-2))
+                spectrum, _ = self.processor.calculate(self.wavelength_grid, age, metdex, z=z, Ha_flux_ratio=ha_strength)
             if normalize_spectra:
                 spectrum /= np.max(spectrum)
 
@@ -212,7 +210,6 @@ class DatasetBuilder:
         photometry, (binned_spectra, _) = self.photometric_calculator.calculate_flux_and_mag(
             spectra_list, wavelengths_list, list(self.photometric_calculator.filter_data.keys())
         )
-
         # Merge data
         output_array = [[[entry[1] for entry in mag], params, spec]
                         for mag, params, spec in zip(photometry, param_list, binned_spectra)]
