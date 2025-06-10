@@ -56,8 +56,17 @@ class SpectrumInterpolator:
 class SpectrumProcessor:
     def __init__(self, interpolator):
         self.interpolator = interpolator
+        self.emission_lines = {
+            'Halpha': (6562.8, 1.0),      # Hα (reference)
+            'Hbeta': (4861.3, 0.35),      # Hβ
+            '[OIII]5007': (5006.8, 0.5),  # [O III] 5007
+            '[NII]6583': (6583.4, 0.3),  # [N II] 6583
+            '[SII]6716': (6716.4, 0.1),  # [S II] 6716
+            '[SII]6731': (6730.8, 0.1),   # [S II] 6731
+            '[OII]3727': (3727.1, 0.5)    # [O II] 3727 (doublet)
+        }
 
-    def calculate(self, wl, age, met, z=0.0, Av=0.0, Rv=3.1):
+    def calculate(self, wl, age, met, z=0.0, Av=0.0, Rv=3.1, Ha_flux_ratio=0.0):
         wl = np.asarray(wl)
         spec = self.interpolator.evaluate(age, met)
         wl_z = wl * (1 + z)
@@ -72,6 +81,31 @@ class SpectrumProcessor:
             attenuation = 10 ** (-0.4 * extinction)
             spec *= attenuation
 
+        mask = (wl_z >= 5600) & (wl_z <= 6800)
+        total_flux_5600_6800 = np.trapz(spec[mask], wl_z[mask])
+        # Add emission lines if Ha_flux_ratio > 0
+        if Ha_flux_ratio > 0:
+            # Calculate Hα flux from the ratio
+            Ha_flux = Ha_flux_ratio * total_flux_5600_6800
+            
+            # Create emission line spectrum
+            emission_spec = np.zeros_like(spec)
+            
+            # Add each emission line as a Gaussian
+            for line_name, (line_wl, ratio) in self.emission_lines.items():
+                line_flux = Ha_flux * ratio
+                line_wl_z = line_wl * (1 + z)
+                
+                # Create Gaussian for the emission line (FWHM ~5Å typical for galaxies)
+                sigma = 2.5 / 2.3548  # Convert FWHM=2.5Å to sigma
+                gauss = np.exp(-0.5 * ((wl_z - line_wl_z)/sigma)**2)
+                gauss *= line_flux / (sigma * np.sqrt(2*np.pi))  # Normalize to total flux
+                
+                emission_spec += gauss
+            
+            # Add emission lines to the spectrum
+            spec += emission_spec
+    
         return spec, wl_z
 
 
@@ -129,6 +163,7 @@ class DatasetBuilder:
         old_blend_prob=0.3,
         young_age_threshold=3000,
         young_extinction_prob=0.5,
+        eml_prob=0.9,
         extinction_range=(0.01, 0.5),
         extinction_rv=3.1,
         n_augmentations=20,
@@ -161,6 +196,10 @@ class DatasetBuilder:
             if age < young_age_threshold and np.random.rand() < young_extinction_prob:
                 Av = 10 ** np.random.uniform(np.log10(extinction_range[0]), np.log10(extinction_range[1]))
                 spectrum, _ = self.processor.calculate(self.wavelength_grid, age, metdex, z=z, Av=Av, Rv=extinction_rv)
+                
+            if age < young_age_threshold and np.random.rand() < eml_prob:
+                ha_strength = 10 ** np.random.uniform(np.log10(1e-2), np.log10(2e-1))
+                spectrum, _ = self.processor.calculate(self.wavelength_grid, age, metdex, z=z, Rv=extinction_rv, Ha_flux_ratio=ha_strength)
 
             if normalize_spectra:
                 spectrum /= np.max(spectrum)
