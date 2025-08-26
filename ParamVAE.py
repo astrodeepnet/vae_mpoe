@@ -8,11 +8,11 @@ import numpy as np
 class ParamVAE(keras.Model):
     def build_dense_decoder_param(self, latent_dim, output_dim):
         latent_inputs = layers.Input(shape=(latent_dim,), name='z_sampling')
-        x = layers.Dense(16, activation='relu')(latent_inputs)
-        x = layers.Dense(16, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dense(16, activation='sigmoid')(latent_inputs)
+        x = layers.Dense(16, activation='sigmoid')(x)
+        x = layers.Dense(32, activation='sigmoid')(x)
+        x = layers.Dense(32, activation='sigmoid')(x)
+        x = layers.Dense(32)(x)
         outputs = layers.Dense(output_dim[0])(x)
     
         decoder = keras.Model(latent_inputs, outputs, name='dense_decoder')
@@ -26,7 +26,7 @@ class ParamVAE(keras.Model):
         self.z_log_var = layers.Dense(latent_dim, name='z_log_var')(self.encoder_branch.output)
 
         self.z = Sampling()([self.z_mean, self.z_log_var])
-        self.wei = np.array([1, 1, 1])
+        self.wei = np.array([1] * n_param)
         self.wei = self.wei / np.sum(self.wei)
         self.encoder = spvae.encoder
         self.encoder.trainable = False  # Prevent training of the decoder

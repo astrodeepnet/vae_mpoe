@@ -7,13 +7,13 @@ import os
 def validate_HSC(parvaeapply, filenames, fig_path,
                  show = [False, False, False, False, False, False, False],
                  hsc_table='DESI_DR1_HSCSSP_clean_v2.fits',
-                 mlflow = False):
+                 mlflow = False, z_min=0.1, z_max=0.95):
     t_hsc_ = Table.read('DESI_DR1_HSCSSP_clean_v2.fits')
          
     
     hsc_int = []
     hsz_z = []
-    t_hsc = t_hsc_[((t_hsc_['z'] > 0.1) & (t_hsc_['z'] < 0.95) & (t_hsc_['zwarn'] == 0))]
+    t_hsc = t_hsc_[((t_hsc_['z'] > z_min) & (t_hsc_['z'] < z_max) & (t_hsc_['zwarn'] == 0))]
     
     for r in t_hsc:
         mags = mags = np.array([r['g_kronflux_mag'], r['r_kronflux_mag'], r['i_kronflux_mag'], r['z_kronflux_mag'], r['y_kronflux_mag']])
@@ -37,7 +37,7 @@ def validate_HSC(parvaeapply, filenames, fig_path,
     ply = res[:]
         
     plt.clf()
-    plt.hist2d(plx, ply, range=[[0, 1], [-1, 1]], bins=40)
+    plt.hist2d(plx, ply, range=[[z_min, z_max], [-1, 1]], bins=40)
     plt.ylim(-np.max(plx), np.max(plx))
     plt.xlabel('$' + pnames[axs[0]] + '$')
     plt.ylabel('$\Delta ' + pnames[axs[1]] + '$')
@@ -54,7 +54,7 @@ def validate_HSC(parvaeapply, filenames, fig_path,
     plt.clf()
     plx = p[:]
     ply = res[:]
-    plt.hist2d(p[:], s[:, 0], range=[[0, 1], [-1, 1]], bins=40)
+    plt.hist2d(p[:], s[:, 0], range=[[z_min, z_max], [-0.5, z_max+0.5]], bins=40)
     plt.plot([0, 1], [0, 1], color='red')
     plt.ylim(np.min(p[:]), np.max(p[:]))
     plt.xlabel('$' + pnames[axs[0]] + '$')
@@ -74,7 +74,7 @@ def validate_HSC(parvaeapply, filenames, fig_path,
 
     hsc_int = []
     hsz_z = []
-    t_hsc = t_hsc_[((t_hsc_['z'] > 0.1) & (t_hsc_['z'] < 0.95) & (t_hsc_['zwarn'] == 0) &
+    t_hsc = t_hsc_[((t_hsc_['z'] > z_min) & (t_hsc_['z'] < z_max) & (t_hsc_['zwarn'] == 0) &
                     (t_hsc_['g_kronflux_mag'] > 0) &
                     (t_hsc_['r_kronflux_mag'] > 0) &
                     (t_hsc_['i_kronflux_mag'] > 0) &
