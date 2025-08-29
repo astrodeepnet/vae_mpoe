@@ -7,7 +7,13 @@ import os
 def validate_HSC(parvaeapply, filenames, fig_path,
                  show = [False, False, False, False, False, False, False],
                  hsc_table='DESI_DR1_HSCSSP_clean_v2.fits',
-                 mlflow = False, z_min=0.1, z_max=0.95):
+                 mlflow = False, z_min=0.1, z_max=0.95,
+                 hist2d_zz_kwargs=None, hist2d_dzz_kwargs=None):
+    if hist2d_zz_kwargs is None:
+        hist2d_zz_kwargs = dict(bins=50, range=[[z_min, z_max], [-0.5, z_max+0.5]])
+    if hist2d_dzz_kwargs is None:
+        hist2d_dzz_kwargs = dict(bins=50, range=[[z_min, z_max], [-1, 1]])
+
     t_hsc_ = Table.read('DESI_DR1_HSCSSP_clean_v2.fits')
          
     
@@ -37,7 +43,7 @@ def validate_HSC(parvaeapply, filenames, fig_path,
     ply = res[:]
         
     plt.clf()
-    plt.hist2d(plx, ply, range=[[z_min, z_max], [-1, 1]], bins=40)
+    plt.hist2d(plx, ply, **hist2d_dzz_kwargs)
     plt.ylim(-np.max(plx), np.max(plx))
     plt.xlabel('$' + pnames[axs[0]] + '$')
     plt.ylabel('$\Delta ' + pnames[axs[1]] + '$')
@@ -54,10 +60,10 @@ def validate_HSC(parvaeapply, filenames, fig_path,
     plt.clf()
     plx = p[:]
     ply = res[:]
-    plt.hist2d(p[:], s[:, 0], range=[[z_min, z_max], [-0.5, z_max+0.5]], bins=40)
+    plt.hist2d(p[:], s[:, 0], **hist2d_zz_kwargs)
     plt.plot([0, 1], [0, 1], color='red')
     plt.ylim(np.min(p[:]), np.max(p[:]))
-    plt.xlabel('$' + pnames[axs[0]] + '$')
+    plt.xlabel('$' + pnames[axs[0]] + ' (true) $')
     plt.ylabel('$ ' + pnames[axs[1]] + '$')
     #filename = f"plot_zz_beta{beta}_epochs{epochs}_latent{latent_dim}.png"
     filename = os.path.join(fig_path, filenames[1])
@@ -166,7 +172,8 @@ def validate_HSC(parvaeapply, filenames, fig_path,
         if np.any(bin_mask):
             clipped = sigma_clip(ply[bin_mask], sigma=2.5, maxiters=20)
             mean_val = np.median(clipped.data[~clipped.mask])
-            print(np.mean(plx[bin_mask]), mean_val)
+            std_val = np.nanstd(clipped.data[~clipped.mask])
+            print(np.mean(plx[bin_mask]), mean_val, std_val)
             corrected_ply[bin_mask] -= mean_val
     
     plt.clf()
