@@ -12,17 +12,18 @@ class SpectraVAE(keras.Model):
         x = layers.Flatten()(cnn_input)
         x = layers.Dense(128, activation='relu')(x)
         x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(128, activation='relu')(x)
         x = layers.Dense(64, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dense(64, activation='relu')(x)
         return keras.Model(cnn_input, x, name='cnn_encoder')
     
     def build_dense_decoder_sp(self, latent_dim, output_dim):
         latent_inputs = layers.Input(shape=(latent_dim,), name='z_sampling')
-        x = layers.Dense(32, activation='relu')(latent_inputs)
-        x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dense(64, activation='relu')(latent_inputs)
         x = layers.Dense(64, activation='relu')(x)
-        x = layers.Dense(64, activation='relu')(x)
+        x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(128, activation='relu')(x)
         x = layers.Dense(128, activation='relu')(x)
         x = layers.Dense(128, activation='relu')(x)
         outputs = layers.Dense(output_dim[0])(x)
@@ -95,7 +96,7 @@ class SpectraVAE(keras.Model):
         (z_mean, z_log_var, z, reconstruction) = self.apply(data)
         reconstruction_loss = ops.mean(
                 tf.keras.backend.mean(tf.keras.backend.square((data - reconstruction)/data))
-        )
+            )
         kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
         kl_loss = ops.mean(ops.sum(kl_loss, axis=1))
         total_loss = reconstruction_loss + kl_loss*self.beta

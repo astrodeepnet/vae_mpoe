@@ -10,9 +10,12 @@ class ParamVAE(keras.Model):
         latent_inputs = layers.Input(shape=(latent_dim,), name='z_sampling')
         x = layers.Dense(16, activation='sigmoid')(latent_inputs)
         x = layers.Dense(16, activation='sigmoid')(x)
+        x = layers.Dense(16, activation='sigmoid')(x)
+        #x = layers.Dense(16, activation='relu')(x)
         x = layers.Dense(32, activation='sigmoid')(x)
         x = layers.Dense(32, activation='sigmoid')(x)
-        x = layers.Dense(32)(x)
+        x = layers.Dense(32, activation='sigmoid')(x)
+        x = layers.Dense(32, activation='relu')(x)
         outputs = layers.Dense(output_dim[0])(x)
     
         decoder = keras.Model(latent_inputs, outputs, name='dense_decoder')
@@ -82,13 +85,11 @@ class ParamVAE(keras.Model):
        }
 
     def test_step(self, data):
-        print(data)
         (data_in, data_out) = data[0]
         (z_mean, z_log_var, z, reconstruction) = self.apply(data_in)
         reconstruction_loss = ops.mean(
-                #keras.losses.mean_squared_error(data, reconstruction),
-                tf.keras.backend.mean(tf.keras.backend.square(data_out*self.wei - reconstruction*self.wei))
-        )
+                tf.keras.backend.square(data_out*self.wei - reconstruction*self.wei)
+            )
         kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
         kl_loss = ops.mean(ops.sum(kl_loss, axis=1))
         total_loss = reconstruction_loss + kl_loss*self.beta
