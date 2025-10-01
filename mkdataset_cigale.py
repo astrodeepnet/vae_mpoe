@@ -3,7 +3,8 @@ from astropy.table import Table
 from gen_dataset import *
 from filters import filter_data, filters
 
-def mkdataset_cigale():
+def mkdataset_cigale(n_z=10, z_min=0.0, z_max=1.5, 
+                     normalize_spectra=True, perturbation_sigmas=None):
     t = Table.read('exp_cigale.fits')
     print(len(t))
     spectra_list = []
@@ -11,7 +12,7 @@ def mkdataset_cigale():
     param_list = []
  
     for i, r in enumerate(t):
-        z_range = np.random.uniform(0, 1.5, size=10)
+        z_range = np.random.uniform(z_min, z_max, size=n_z)
         for z in z_range:
             wl_ = r['wl'] * 10 * (1 + z)
             wl = wl_[((wl_ > 3500) & (wl_ < 12000))]
@@ -24,12 +25,12 @@ def mkdataset_cigale():
 
 
     n_augmentations = 10
-    normalize_spectra = True
+    
 
+    if perturbation_sigmas == None:
+        perturbation_sigmas = [0.02] * 5
 
-    perturbation_sigmas = [0.1] * 5
-
-    photocalc = PhotometricCalculator(spec_range=(3900, 10200), spec_points=30, filter_data=filter_data)
+    photocalc = PhotometricCalculator(spec_range=(3900, 10200), spec_points=100, filter_data=filter_data)
 
     photometry, (binned_spectra, wllr) = photocalc.calculate_flux_and_mag(
                 spectra_list, wavelengths_list, list(photocalc.filter_data.keys())
@@ -52,7 +53,7 @@ def mkdataset_cigale():
                 val + sigma * np.random.normal(0, 1) * val
                 for val, sigma in zip(flux_arr, perturbation_sigmas)
             ]
-            spectrum_norm = spec / np.max(spec) if normalize_spectra else spec
+            spectrum_norm = spec / np.median(spec) if normalize_spectra else spec
             dataset.append([perturbed, params, spectrum_norm])
 
     integrals = np.array([entry[0] for entry in dataset])
