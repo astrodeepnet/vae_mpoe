@@ -4,8 +4,9 @@ from gen_dataset import *
 from filters import filter_data, filters
 
 def mkdataset_cigale(n_z=10, z_min=0.0, z_max=1.5, 
-                     normalize_spectra=True, perturbation_sigmas=None):
-    t = Table.read('exp_cigale.fits')
+                     normalize_spectra=True, perturbation_sigmas=None,
+                     inp_file='exp_cigale.fits'):
+    t = Table.read(inp_file)
     print(len(t))
     spectra_list = []
     wavelengths_list = []

@@ -118,6 +118,22 @@ def validate_HSC(parvaeapply, filenames, fig_path,
     if mlflow:
         mlflow.log_artifact(filename, artifact_path="valid_plots")
 
+
+    plt.clf()
+    plx = s[:, 0]
+    ply = res[:]
+    plt.plot(plx, ply, marker='.', color='black', linestyle='None', alpha=0.005)
+    plt.ylim(-np.max(plx), np.max(plx))
+    plt.xlabel('$' + pnames[axs[0]] + '$')
+    plt.ylabel('$\Delta ' + pnames[axs[1]] + '$')
+    filename = os.path.join(fig_path, filenames[2])
+    plt.savefig(filename)
+    if show[2]: 
+        plt.show()
+    if mlflow:
+        mlflow.log_artifact(filename, artifact_path="valid_plots")
+
+    
     plx = np.array(p[:])
     ply = np.array(res[:])
     print(plx)

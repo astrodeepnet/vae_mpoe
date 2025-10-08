@@ -10,22 +10,26 @@ class SpectraVAE(keras.Model):
     def build_encoder_sp_branch(self, input_shape):
         cnn_input = keras.Input(shape=input_shape)
         x = layers.Flatten()(cnn_input)
+        x = layers.Dense(128, activation='sigmoid')(x)
         x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
+        #x = layers.Dense(128, activation='relu')(x)
+        #x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(64, activation='sigmoid')(x)
         x = layers.Dense(64, activation='relu')(x)
-        x = layers.Dense(64, activation='relu')(x)
+        x = layers.Dense(64, activation='sigmoid')(x)
+
         return keras.Model(cnn_input, x, name='cnn_encoder')
     
     def build_dense_decoder_sp(self, latent_dim, output_dim):
         latent_inputs = layers.Input(shape=(latent_dim,), name='z_sampling')
-        x = layers.Dense(64, activation='relu')(latent_inputs)
+        x = layers.Dense(64, activation='sigmoid')(latent_inputs)
         x = layers.Dense(64, activation='relu')(x)
+        #x = layers.Dense(128, activation='relu')(x)
+        #x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(128, activation='sigmoid')(x)
         x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dense(128, activation='sigmoid')(x)
+
         outputs = layers.Dense(output_dim[0])(x)
     
         decoder = keras.Model(latent_inputs, outputs, name='dense_decoder')
@@ -63,20 +67,30 @@ class SpectraVAE(keras.Model):
         ]
 
     def apply(self, data):
-        z_mean, z_log_var, z = self.encoder(data)
+        data_in = data
+        z_mean, z_log_var, z = self.encoder(data_in)
         reconstruction = self.decoder(z)
         return (z_mean, z_log_var, z, reconstruction)
 
+    
+    #def call(self, data):
+    #    #return self.apply(data)[3]
+    #    (data_in, data_out) = data[0]
+    #    return self.apply(data_in)[3]
+    
     def call(self, data):
-        return self.apply(data)[3]
-
-
+        data_in  = data
+        z_mean, z_log_var, z = self.encoder(data_in)
+        reconstruction = self.decoder(z)
+        return reconstruction
+    
 
     def train_step(self, data):
+        (data_in, data_out) = data[0]
         with tf.GradientTape() as tape:
-            (z_mean, z_log_var, z, reconstruction) = self.apply(data)
+            (z_mean, z_log_var, z, reconstruction) = self.apply(data_in)
             reconstruction_loss = ops.mean(
-                tf.keras.backend.mean(tf.keras.backend.square((data - reconstruction)/data))
+                tf.keras.backend.mean(tf.keras.backend.square((data_out - reconstruction)/data_out))
             )
             kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
             kl_loss = ops.mean(ops.sum(kl_loss, axis=1))
@@ -93,9 +107,10 @@ class SpectraVAE(keras.Model):
        }
 
     def test_step(self, data):
-        (z_mean, z_log_var, z, reconstruction) = self.apply(data)
+        (data_in, data_out) = data[0]
+        (z_mean, z_log_var, z, reconstruction) = self.apply(data_in)
         reconstruction_loss = ops.mean(
-                tf.keras.backend.mean(tf.keras.backend.square((data - reconstruction)/data))
+                tf.keras.backend.mean(tf.keras.backend.square((data_out - reconstruction)/data_out))
             )
         kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
         kl_loss = ops.mean(ops.sum(kl_loss, axis=1))

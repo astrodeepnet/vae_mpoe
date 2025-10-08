@@ -7,9 +7,9 @@ import numpy as np
 
 
 class ParamVAEapply(keras.Model):
-    def __init__(self, input_dim, latent_dim, spvae, beta=1, **kwargs):
+    def __init__(self, input_dim, latent_dim, bpvae, parvae, beta=1, **kwargs):
         super().__init__(**kwargs)
-        self.encoder_branch = spvae.encoder_branch
+        self.encoder_branch = bpvae.encoder_branch
 
         self.z_mean = layers.Dense(latent_dim, name='z_mean')(self.encoder_branch.output)
         self.z_log_var = layers.Dense(latent_dim, name='z_log_var')(self.encoder_branch.output)

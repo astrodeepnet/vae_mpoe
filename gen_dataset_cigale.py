@@ -11,7 +11,7 @@ SED_PARAMETERS = {
         'tau_main': 1000.,
         'age_main': 8000.,
         'tau_burst': 2000.,
-        'age_burst': 50.,
+        'age_burst': 10.0,
         'f_burst': 0.00,
         },
     'bc03': {
@@ -22,7 +22,7 @@ SED_PARAMETERS = {
         'logU': -2.0,
         'f_esc': 0.0,
         'f_dust': 0.0,
-        'emission': True,
+        'emission': False,
         'line_list': """
             ArIII-713.6 &
             CII-232.4 &
@@ -111,4 +111,4 @@ for age in ages:
 
 
 t = Table([age_tbl, alpha_tbl, met_tbl, wl_tbl, flx_tbl], names=('age', 'alpha', 'met', 'wl', 'flx'))
-t.write('exp_cigale.fits', overwrite=True)
+t.write('exp_cigale_noeml.fits', overwrite=True)

@@ -5,14 +5,26 @@ from keras import layers
 from utils import Sampling
 
 
+class MonteCarloDropout(layers.Dropout):
+    def call(self, inputs, training=True):
+        return super().call(inputs, training=True)
+
+
 class BandPassVAE(keras.Model):
-    def build_dense_encoder_sed_branch(self, input_shape):
+    def build_dense_encoder_sed_branch(self, input_shape, dropout_rate=0.0):
         dense_input = keras.Input(shape=input_shape)
-        x = layers.Dense(16, activation='relu')(dense_input)
-        x = layers.Dense(16, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
-        x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dense(input_shape[0], activation='sigmoid')(dense_input)
+        #x = layers.Dense(8, activation='relu')(x)
+        #x = MonteCarloDropout(dropout_rate)(x)
+        x = layers.Dense(16, activation='sigmoid')(x)
+        #x = layers.Dense(16, activation='relu')(x)
+        #x = layers.Dense(32, activation='relu')(x)
+        #x = layers.Dense(32, activation='relu')(x)
+        x = layers.Dense(16, activation='sigmoid')(x)
+        #x = MonteCarloDropout(dropout_rate)(x)
+        x = MonteCarloDropout(dropout_rate)(x)
+        x = layers.Dense(16, activation='sigmoid')(x)
+        #x = layers.Dense(64, activation='relu')(x)
         return keras.Model(dense_input, x, name='dense_encoder_branch')
 
     def __init__(self, input_dim, latent_dim, spvae, beta=1, **kwargs):
@@ -28,7 +40,8 @@ class BandPassVAE(keras.Model):
 
         self.decoder = spvae.decoder
         self.decoder.trainable = False  # Prevent training of the decoder
-
+        self.encoder_spec = spvae.encoder
+        self.encoder_spec.trainable = False
         self.total_loss_tracker = keras.metrics.Mean(name="total_loss")
         self.reconstruction_loss_tracker = keras.metrics.Mean(
             name="reconstruction_loss"
@@ -59,12 +72,19 @@ class BandPassVAE(keras.Model):
         (data_in, data_out) = data[0]
         with tf.GradientTape() as tape:
             (z_mean, z_log_var, z, reconstruction) = self.apply(data_in)
+            (z_mean_spec, z_log_var_spec, z_spec) = self.encoder_spec(data_out)
+
             reconstruction_loss = ops.mean(
                 tf.keras.backend.mean(tf.keras.backend.square((data_out - reconstruction)/data_out))
             )
+
+            latent_loss = ops.mean(
+                tf.keras.backend.mean(tf.keras.backend.square((z - z_spec)))
+            )
+                        
             kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
             kl_loss = ops.mean(ops.sum(kl_loss, axis=1))
-            total_loss = reconstruction_loss + kl_loss*self.beta
+            total_loss = reconstruction_loss*0 + latent_loss + kl_loss*self.beta
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.total_loss_tracker.update_state(total_loss)
@@ -81,7 +101,6 @@ class BandPassVAE(keras.Model):
         (data_in, data_out) = data[0]
         (z_mean, z_log_var, z, reconstruction) = self.apply(data_in)
         reconstruction_loss = ops.mean(
-                #keras.losses.mean_squared_error(data, reconstruction),
                 tf.keras.backend.mean(tf.keras.backend.square((data_out - reconstruction)/data_out))
         )
         kl_loss = -0.5 * (1 + z_log_var - ops.square(z_mean) - ops.exp(z_log_var))
