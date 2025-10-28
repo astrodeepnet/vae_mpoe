@@ -11,7 +11,7 @@ class MonteCarloDropout(layers.Dropout):
 
 
 class BandPassVAE(keras.Model):
-    def build_dense_encoder_sed_branch(self, input_shape, dropout_rate=0.0):
+    def build_dense_encoder_sed_branch(self, input_shape, dropout_rate=0.1):
         dense_input = keras.Input(shape=input_shape)
         x = layers.Dense(input_shape[0], activation='sigmoid')(dense_input)
         #x = layers.Dense(8, activation='relu')(x)
