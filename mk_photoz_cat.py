@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import corner
+#import corner
 from astropy.io import fits
-from astropy.table import Table, vstack
+from astropy.table import Table, Column, vstack
 from ParamVAEapply import ParamVAEapply
 from BandPassVAE import BandPassVAE
 from SpectraVAE import SpectraVAE
@@ -60,7 +60,7 @@ epochs = 150
 n_param = 4
 input_dim = 5
 
-chunk_size = 100_000      # user-defined chunk size
+chunk_size = 500_000      # user-defined chunk size
 n_smpl = 10               # number of model samples per chunk
 
 # directory for saving intermediate chunks
@@ -140,9 +140,14 @@ def process_chunk(t_chunk):
     s_all = np.array(s_all)
 
     # mean over samples
-    s_all_mean = np.nanmean(s_all[:, :, 0], axis=0)
+    z_all_mean = np.nanmean(s_all[:, :, 0], axis=0)
+    z_all_std = np.nanstd(s_all[:, :, 0], axis=0)
 
-    return mask, s_all_mean
+    a_all_mean = np.nanmean(s_all[:, :, 1], axis=0)
+    a_all_std = np.nanstd(s_all[:, :, 1], axis=0)
+
+    
+    return mask, z_all_mean, z_all_std, a_all_mean, a_all_std, s_all[:, :, 0]
 
 
 # ---- PROCESS AND SAVE CHUNKS ----
@@ -158,12 +163,21 @@ while start < N:
     t_chunk = t_hsc[start:end]
     t_chunk = t_chunk.copy()       # ensure independence
     t_chunk['z_photo'] = np.nan
+    t_chunk['z_photo_err'] = np.nan
+    t_chunk['z_smpl'] = Column(np.full((len(t_chunk), 10), np.nan), dtype=float)
+
+    t_chunk['age_photo'] = np.nan
+    t_chunk['age_photo_err'] = np.nan
 
     # process chunk
-    mask, z_chunk = process_chunk(t_chunk)
+    mask, z_chunk, zerr_chunk, a_chunk, aerr_chunk, z_sampled_chunck = process_chunk(t_chunk)
 
     # fill values
     t_chunk['z_photo'][mask] = z_chunk
+    t_chunk['z_photo_err'][mask] = zerr_chunk
+    t_chunk['age_photo'][mask] = a_chunk
+    t_chunk['age_photo_err'][mask] = aerr_chunk
+    t_chunk['z_smpl'][mask] = z_sampled_chunck.T
 
     # save intermediate file
     chunk_file = os.path.join(chunk_save_dir, f"chunk_{chunk_id:04d}.fits")
@@ -177,11 +191,21 @@ while start < N:
 
 
 # ---- MERGE ALL CHUNKS ----
-print("Merging chunks...")
-tables = [Table.read(f) for f in chunk_files]
-t_out = vstack(tables, metadata_conflicts='silent')
+print("Merging chunks (streaming to FITS)...")
 
 out_file = "HSC_SSP_zphoto.fits"
-t_out.write(out_file, overwrite=True)
+first = True
 
-print(f"Final output written to: {out_file}")
+for f in chunk_files:
+    print("Processing", f)
+
+    # Read next chunk (only this chunk in memory)
+    t = Table.read(f)
+
+    if first:
+        # Write first chunk, create file
+        t.write(out_file, overwrite=True)
+        first = False
+    else:
+        # Append rows to the SAME BINTABLE HDU
+        t.write(out_file, append=True)

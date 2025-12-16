@@ -184,7 +184,7 @@ def _generate_single_sample(args):
 
     if age < config['young_age_threshold'] and np.random.rand() < config['eml_prob']:
         ha_strength = 10 ** np.random.uniform(np.log10(3e-3), np.log10(5e-2))
-        continuum_strength = 0.8
+        continuum_strength = 2*10 ** np.random.uniform(np.log10(3e-3), np.log10(1))
 
 
     spectrum, _ = processor.calculate(wl_grid, age, metdex, z=z, Av=Av, 

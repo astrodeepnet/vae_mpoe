@@ -256,10 +256,10 @@ def run_train(beta, epochs, latent_dim, batch_size, fig_path = "/data/kirg/MMVAE
     fig_dir = f"fig_beta{beta}_epochs{epochs}_latent{latent_dim}_batch{batch_size}"
     fig_path = os.path.join(fig_root, fig_dir)
     
-    validate_HSC(parvaeapply, filename, fig_path='/data/kirg/MMVAE/MLFlow',
-                     show = [False, False, False, False, False, False, False],
-                     hsc_table='DESI_DR1_HSCSSP_clean_v2.fits',
-                     mlflow=mlflow)
+    #validate_HSC(parvaeapply, filename, fig_path='/data/kirg/MMVAE/MLFlow',
+    #                 show = [False, False, False, False, False, False, False],
+    #                 hsc_table='DESI_DR1_HSCSSP_clean_v2.fits',
+    #                 mlflow=mlflow)
 
 
 

@@ -7,7 +7,8 @@ class Sampling(layers.Layer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.seed_generator = keras.random.SeedGenerator(1337)
+        #1337
+        self.seed_generator = keras.random.SeedGenerator()
 
     def call(self, inputs):
         z_mean, z_log_var = inputs

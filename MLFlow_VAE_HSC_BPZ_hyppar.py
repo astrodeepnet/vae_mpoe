@@ -30,7 +30,7 @@ beta_values = [1e-5, 3e-5, 1e-4, 3e-4,
                0.1, 0.2,0.3,0.7,1.0]
 epochs_values = [100]
 latent_dims = [4, 8, 16, 32, 64]
-batchsize_values = [512, 256, 128, 64]
+batchsize_values = [128, 64, 32]
 
 for beta in beta_values:
     for epochs in epochs_values:
@@ -43,9 +43,17 @@ for beta in beta_values:
                     mlflow.log_param("latent_dim", latent_dim)
                     mlflow.log_param("batch_size", batch_size)
 
-                    run_train(beta=beta, epochs=epochs, 
-                              latent_dim=latent_dim,
-                              batch_size=batch_size,
-                              fig_path="/data/kirg/MMVAE/MLFlow", 
-                              weight_root='/data/kirg/MMVAE/weights/'+expname, 
-                              mlflow=mlflow)
+                    try:
+                        run_train(
+                            beta=beta,
+                            epochs=epochs,
+                            latent_dim=latent_dim,
+                            batch_size=batch_size,
+                            fig_path="/data/kirg/MMVAE/MLFlow", 
+                            weight_root='/data/kirg/MMVAE/weights/' + expname, 
+                            mlflow=mlflow
+                        )
+                    except Exception as e:
+                        mlflow.log_param("error", str(e))
+                        print(f"Error in run: beta={beta}, epochs={epochs}, latent_dim={latent_dim}, batch_size={batch_size}")
+                        print(f"Exception: {e}")
