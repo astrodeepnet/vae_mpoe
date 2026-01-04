@@ -54,21 +54,23 @@ def load_paramvaeapply(path: str, weight_file: str, input_dim: int, latent_dim: 
     return ParamVAEapply(input_dim, latent_dim, bpvae, parvae, beta=beta), parvae, bpvae, spvae
 
 
-latent_dim = 64
+latent_dim = 8 #64
 beta = 1e-3
 epochs = 150
 n_param = 4
 input_dim = 5
 
 chunk_size = 500_000      # user-defined chunk size
-n_smpl = 10               # number of model samples per chunk
+n_smpl = 1               # number of model samples per chunk
 
 # directory for saving intermediate chunks
-chunk_save_dir = "/data/kirg/tmp/hsc_chunks"     # <--- SET THIS
+chunk_save_dir = "/data/kirg/tmp/hsc_chunks_20260103185816"     # <--- SET THIS
 
 os.makedirs(chunk_save_dir, exist_ok=True)
 
-id_run = '20251010162214'
+#id_run = '20251010162214'
+id_run = '20260103185816'
+
 weight_path = "/data/kirg/MMVAE/cigale/" + id_run + "/"
 save_path = os.path.join(weight_path, 'epochs/')
 plot_output_path = os.path.join(weight_path, 'cornerplots_train_' + id_run)
@@ -193,7 +195,7 @@ while start < N:
 # ---- MERGE ALL CHUNKS ----
 print("Merging chunks (streaming to FITS)...")
 
-out_file = "HSC_SSP_zphoto.fits"
+out_file = "HSC_SSP_zphoto_20260103185816.fits"
 first = True
 
 for f in chunk_files:
